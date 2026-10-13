@@ -1,0 +1,1150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareConnect - Health & Medication Tracker</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .font-normal-size { font-size: 1rem; }
+        .font-large-size { font-size: 1.15rem; }
+        .font-extralarge-size { font-size: 1.35rem; }
+    </style>
+</head>
+<body id="appBody" class="bg-slate-100 text-slate-800 font-normal-size min-h-screen flex flex-col">
+
+    <!-- TOP HEADER BAR -->
+    <header class="bg-indigo-600 text-white shadow-md p-4 flex flex-wrap justify-between items-center gap-3">
+        <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-heart-pulse text-2xl text-rose-300"></i>
+            <h1 id="uiAppTitle" class="text-xl font-bold tracking-wide">CareConnect (家安药历)</h1>
+        </div>
+
+        <!-- CONTROLS: Language, Font Size, Mode -->
+        <div class="flex items-center space-x-3 flex-wrap">
+            <!-- Language Selector -->
+            <div class="flex items-center bg-indigo-700 rounded px-2 py-1">
+                <i class="fa-solid fa-globe text-xs mr-1 text-indigo-200"></i>
+                <select id="languageSelect" onchange="changeLanguage(this.value)" class="bg-transparent text-white text-sm outline-none cursor-pointer">
+                    <option value="en" class="text-slate-800">English</option>
+                    <option value="zh-CN" class="text-slate-800" selected>简体中文</option>
+                    <option value="zh-TW" class="text-slate-800">繁體中文</option>
+                    <option value="es" class="text-slate-800">Español</option>
+                    <option value="ja" class="text-slate-800">日本語</option>
+                    <option value="ko" class="text-slate-800">한국어</option>
+                    <option value="vi" class="text-slate-800">Tiếng Việt</option>
+                    <option value="tl" class="text-slate-800">Tagalog</option>
+                </select>
+            </div>
+
+            <!-- Font Size Toggle -->
+            <div class="flex items-center bg-indigo-700 rounded px-2 py-1 space-x-1">
+                <i class="fa-solid fa-text-height text-xs text-indigo-200"></i>
+                <select id="fontSizeSelect" onchange="changeFontSize(this.value)" class="bg-transparent text-white text-sm outline-none cursor-pointer">
+                    <option value="normal" class="text-slate-800" id="optFontNormal">Normal</option>
+                    <option value="large" class="text-slate-800" id="optFontLarge">Large</option>
+                    <option value="extralarge" class="text-slate-800" id="optFontExtra">Extra Large</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 flex flex-col gap-6">
+
+        <!-- PROFILE & MODE SELECTOR -->
+        <section class="bg-white rounded-xl shadow p-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <!-- Profile Switcher -->
+            <div class="flex items-center space-x-3 w-full md:w-auto">
+                <span class="font-bold text-slate-600" id="lblProfile">Profile:</span>
+                <select id="profileSelect" onchange="switchProfile(this.value)" class="border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 font-semibold text-indigo-600 outline-none">
+                    <option value="self">👤 Myself / 我自己</option>
+                    <option value="dad">👴 Dad / 爸爸 (Senior)</option>
+                    <option value="mom">👵 Mom / 妈妈 (Senior)</option>
+                </select>
+                <button onclick="openAddProfileModal()" class="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-lg font-medium hover:bg-indigo-200 text-sm">
+                    <i class="fa-solid fa-user-plus mr-1"></i> <span id="btnAddProfileText">Add</span>
+                </button>
+            </div>
+
+            <!-- Mode Toggle Switch (Elderly vs Family) -->
+            <div class="flex bg-slate-200 p-1 rounded-xl w-full md:w-auto">
+                <button onclick="switchMode('elderly')" id="btnModeElderly" class="flex-1 md:flex-initial px-4 py-2 rounded-lg font-bold transition text-sm bg-white text-indigo-600 shadow">
+                    <i class="fa-solid fa-hand-holding-heart mr-1"></i> <span id="lblModeElderly">Patient / Elderly Mode</span>
+                </button>
+                <button onclick="switchMode('family')" id="btnModeFamily" class="flex-1 md:flex-initial px-4 py-2 rounded-lg font-bold transition text-sm text-slate-600">
+                    <i class="fa-solid fa-users mr-1"></i> <span id="lblModeFamily">Family / Caregiver Mode</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- NAVIGATION TABS -->
+        <div class="flex border-b border-slate-200 space-x-6">
+            <button onclick="switchTab('home')" id="tabHome" class="pb-2 font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-2">
+                <i class="fa-solid fa-house"></i> <span id="lblTabHome">Home & Meds</span>
+            </button>
+            <button onclick="switchTab('calendar')" id="tabCalendar" class="pb-2 font-bold text-slate-500 hover:text-indigo-600 flex items-center space-x-2">
+                <i class="fa-solid fa-calendar-days"></i> <span id="lblTabCalendar">Hospital Calendar</span>
+            </button>
+            <button onclick="switchTab('idcards')" id="tabIdCards" class="pb-2 font-bold text-slate-500 hover:text-indigo-600 flex items-center space-x-2">
+                <i class="fa-solid fa-id-card"></i> <span id="lblTabIdCards">ID & Health Cards</span>
+            </button>
+        </div>
+
+        <!-- ================= TAB 1: HOME & MEDS ================= -->
+        <div id="sectionHome" class="space-y-6">
+            <!-- PATIENT / ELDERLY VIEW -->
+            <div id="viewElderly" class="space-y-6">
+                <!-- Hospital Countdown Banner -->
+                <div class="bg-gradient-to-r from-rose-500 to-pink-600 text-white p-5 rounded-2xl shadow-lg flex justify-between items-center">
+                    <div>
+                        <span class="bg-rose-700 text-xs px-2 py-1 rounded-full uppercase tracking-wider font-bold" id="badgeHospital">Hospital Visit</span>
+                        <h2 class="text-xl font-bold mt-2" id="txtHospitalCountdown">Dr. Wong Appointment in 3 Days</h2>
+                        <p class="text-sm text-rose-100 mt-1" id="txtHospitalDetails">📍 Central Hospital - Level 3, Room 302</p>
+                    </div>
+                    <i class="fa-solid fa-hospital-user text-4xl text-rose-200 opacity-80"></i>
+                </div>
+
+                <!-- Medication Reminder Card -->
+                <div class="bg-white p-6 rounded-2xl shadow-md border-2 border-indigo-100 space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-lg text-slate-700 flex items-center">
+                            <i class="fa-solid fa-pills text-indigo-600 mr-2"></i> <span id="lblNextMed">Next Medication</span>
+                        </h3>
+                        <span id="medStatusBadge" class="bg-amber-100 text-amber-800 text-xs px-3 py-1 rounded-full font-bold">Pending ⏳</span>
+                    </div>
+
+                    <div class="bg-indigo-50 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                            <h4 id="medName" class="text-xl font-extrabold text-indigo-950">Amlodipine (Blood Pressure)</h4>
+                            <p id="medDosage" class="text-sm text-indigo-700 mt-1">1 Tablet • Take with water after breakfast</p>
+                            <span id="medTypeBadge" class="inline-block mt-2 bg-indigo-200 text-indigo-800 text-xs px-2 py-0.5 rounded font-semibold">💊 Pill / Tablet</span>
+                        </div>
+                        <div class="text-3xl text-indigo-400">08:00 AM</div>
+                    </div>
+
+                    <!-- GIANT BUTTON FOR ELDERLY -->
+                    <button onclick="confirmTakeMed()" id="btnTakeMed" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xl py-5 rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-3">
+                        <i class="fa-solid fa-circle-check text-2xl"></i>
+                        <span id="btnTextTakeMed">I HAVE TAKEN MY MEDICINE</span>
+                    </button>
+                </div>
+
+                <!-- Quick Photo Log (BP & Reports) -->
+                <div class="bg-white p-6 rounded-2xl shadow-md space-y-4">
+                    <h3 class="font-bold text-lg text-slate-700 flex items-center">
+                        <i class="fa-solid fa-camera text-indigo-600 mr-2"></i> <span id="lblPhotoLog">Quick Photo Log (BP & Reports)</span>
+                    </h3>
+                    <p class="text-sm text-slate-500" id="lblPhotoLogSub">Snap a photo of your blood pressure monitor or medical report to save instantly.</p>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <button onclick="simulateTakePhoto('Blood Pressure')" class="border-2 border-dashed border-indigo-300 hover:border-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-4 rounded-xl flex flex-col items-center justify-center text-indigo-700 transition">
+                            <i class="fa-solid fa-gauge text-3xl mb-2"></i>
+                            <span class="font-bold" id="btnSnapBP">Snap Blood Pressure</span>
+                        </button>
+                        <button onclick="simulateTakePhoto('Medical Report')" class="border-2 border-dashed border-indigo-300 hover:border-indigo-600 bg-indigo-50 hover:bg-indigo-100 p-4 rounded-xl flex flex-col items-center justify-center text-indigo-700 transition">
+                            <i class="fa-solid fa-file-medical text-3xl mb-2"></i>
+                            <span class="font-bold" id="btnSnapReport">Snap Medical Report</span>
+                        </button>
+                    </div>
+
+                    <div id="photoLogContainer" class="mt-4 space-y-2">
+                        <!-- Dynamically populated photo records -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- FAMILY / CAREGIVER VIEW -->
+            <div id="viewFamily" class="hidden space-y-6">
+                <!-- Status Overview Board -->
+                <div class="bg-white p-6 rounded-2xl shadow-md space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-lg text-slate-700 flex items-center">
+                            <i class="fa-solid fa-shield-heart text-indigo-600 mr-2"></i> <span id="lblFamilyDashboard">Caregiver Live Status Dashboard</span>
+                        </h3>
+                        <span class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold" id="lblLiveSync">● Real-time Synced</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <span class="text-xs text-slate-500 font-semibold uppercase" id="lblMedStatusTitle">Medication Today</span>
+                            <p id="familyMedStatusText" class="text-lg font-bold text-amber-600 mt-1">⏳ Pending Confirmation</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <span class="text-xs text-slate-500 font-semibold uppercase" id="lblLatestBPTitle">Latest Blood Pressure</span>
+                            <p id="familyBpText" class="text-lg font-bold text-indigo-600 mt-1">125 / 82 mmHg (Normal)</p>
+                        </div>
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <span class="text-xs text-slate-500 font-semibold uppercase" id="lblNextVisitTitle">Next Hospital Visit</span>
+                            <p id="familyVisitText" class="text-lg font-bold text-rose-600 mt-1">Oct 16, 2026 (3 days)</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manage Medicine List & Add Medicine -->
+                <div class="bg-white p-6 rounded-2xl shadow-md space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h3 class="font-bold text-lg text-slate-700 flex items-center">
+                            <i class="fa-solid fa-list-check text-indigo-600 mr-2"></i> <span id="lblMedicineSchedule">Medication Schedule & Types</span>
+                        </h3>
+                        <button onclick="openAddMedModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg font-bold text-sm">
+                            <i class="fa-solid fa-plus mr-1"></i> <span id="btnAddMed">Add Medicine</span>
+                        </button>
+                    </div>
+
+                    <div id="medicineListContainer" class="space-y-3">
+                        <!-- Populated medicine items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: HOSPITAL CALENDAR ================= -->
+        <div id="sectionCalendar" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-md space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-lg text-slate-700 flex items-center">
+                        <i class="fa-solid fa-calendar-days text-indigo-600 mr-2"></i> <span id="lblMonthlyCalendarTitle">Monthly Hospital & Health Calendar</span>
+                    </h3>
+                    <span class="text-sm font-semibold text-indigo-600" id="currentMonthYear">October 2026</span>
+                </div>
+                <p class="text-sm text-slate-500" id="lblCalendarSub">Tap any date to check scheduled hospital visits and medication compliance.</p>
+
+                <!-- Grid Calendar (31 Days) -->
+                <div class="grid grid-cols-7 gap-2 text-center text-sm">
+                    <div class="font-bold text-slate-400">Mon</div>
+                    <div class="font-bold text-slate-400">Tue</div>
+                    <div class="font-bold text-slate-400">Wed</div>
+                    <div class="font-bold text-slate-400">Thu</div>
+                    <div class="font-bold text-slate-400">Fri</div>
+                    <div class="font-bold text-slate-400">Sat</div>
+                    <div class="font-bold text-slate-400">Sun</div>
+
+                    <!-- Days loop generated via script -->
+                    <div id="calendarDaysGrid" class="contents"></div>
+                </div>
+
+                <!-- Selected Date Info Box -->
+                <div id="calendarSelectedBox" class="bg-indigo-50 border border-indigo-200 p-4 rounded-xl mt-4 hidden">
+                    <h4 class="font-bold text-indigo-900" id="selectedDateTitle">Date Details</h4>
+                    <p class="text-sm text-indigo-700 mt-1" id="selectedDateDesc">No special events scheduled.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: ID & HEALTH CARDS ================= -->
+        <div id="sectionIdCards" class="hidden space-y-6">
+            <div class="bg-white p-6 rounded-2xl shadow-md space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-lg text-slate-700 flex items-center">
+                        <i class="fa-solid fa-id-card text-indigo-600 mr-2"></i> <span id="lblIdCardTitle">ID & Health Card Details</span>
+                    </h3>
+                    <button onclick="openEditIdModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg font-bold text-sm">
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> <span id="btnEditCard">Edit Details</span>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- ID Card Card -->
+                    <div class="bg-gradient-to-br from-slate-800 to-slate-900 text-white p-5 rounded-2xl shadow-lg flex flex-col justify-between">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-xs text-slate-400 uppercase tracking-wider font-bold" id="lblIdCardType">Identity Card (ID)</span>
+                                <h4 id="displayIdName" class="text-xl font-bold mt-1">John Doe</h4>
+                            </div>
+                            <i class="fa-solid fa-address-card text-3xl text-slate-400"></i>
+                        </div>
+                        <div class="mt-6">
+                            <span class="text-xs text-slate-400" id="lblIdNumberLabel">ID Number:</span>
+                            <p id="displayIdNumber" class="text-lg font-mono font-bold tracking-widest">A123456(7)</p>
+                        </div>
+                    </div>
+
+                    <!-- Health / Medical Card -->
+                    <div class="bg-gradient-to-br from-indigo-800 to-indigo-950 text-white p-5 rounded-2xl shadow-lg flex flex-col justify-between">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-xs text-indigo-300 uppercase tracking-wider font-bold" id="lblHealthCardType">Health / Medical Insurance Card</span>
+                                <h4 id="displayHealthName" class="text-xl font-bold mt-1">Hospital Authority / eHealth</h4>
+                            </div>
+                            <i class="fa-solid fa-notes-medical text-3xl text-indigo-300"></i>
+                        </div>
+                        <div class="mt-6 flex justify-between items-end">
+                            <div>
+                                <span class="text-xs text-indigo-300" id="lblHealthNumberLabel">Card / Member No:</span>
+                                <p id="displayHealthNumber" class="text-lg font-mono font-bold tracking-wider">HC-99882233-X</p>
+                            </div>
+                            <button onclick="alert('Card barcode/QR code scanned successfully for hospital admission.')" class="bg-white text-indigo-900 px-3 py-1.5 rounded-lg font-bold text-xs">
+                                <i class="fa-solid fa-qrcode mr-1"></i> <span id="btnShowQr">Show QR</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="text-center py-6 text-slate-400 text-sm">
+        CareConnect © 2026 • Elderly & Patient Health Management Platform
+    </footer>
+
+    <!-- MODAL: EDIT ID & HEALTH CARDS -->
+    <div id="modalEditId" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <h3 class="font-bold text-lg text-slate-800" id="modalIdTitle">Edit ID & Health Card Details</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1" id="lblModalFullName">Full Name</label>
+                    <input type="text" id="inputModalName" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-indigo-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1" id="lblModalIdNo">ID Card Number</label>
+                    <input type="text" id="inputModalIdNo" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-indigo-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1" id="lblModalHealthNo">Health Card / Insurance No</label>
+                    <input type="text" id="inputModalHealthNo" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-indigo-600">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeEditIdModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm" id="btnModalCancel">Cancel</button>
+                <button onclick="saveIdModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm" id="btnModalSave">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: ADD MEDICINE -->
+    <div id="modalAddMed" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-xl">
+            <h3 class="font-bold text-lg text-slate-800" id="modalMedTitle">Add New Medicine</h3>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1" id="lblMedNameInput">Medicine Name</label>
+                    <input type="text" id="inputMedName" placeholder="e.g. Metformin" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-indigo-600">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1" id="lblMedTypeInput">Medicine Type</label>
+                    <select id="inputMedType" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-indigo-600">
+                        <option value="Pill / Tablet">💊 Pill / Tablet (片剂)</option>
+                        <option value="Liquid / Syrup">🧪 Liquid / Syrup (口服液)</option>
+                        <option value="Injection">💉 Injection (注射)</option>
+                        <option value="Drops">💧 Drops (滴剂)</option>
+                        <option value="Patch">🩹 Patch (贴剂)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 mb-1" id="lblMedDosageInput">Dosage & Instructions</label>
+                    <input type="text" id="inputMedDosage" placeholder="e.g. 1 Tablet after lunch" class="w-full border border-slate-300 rounded-lg p-2 outline-none focus:border-indigo-600">
+                </div>
+            </div>
+            <div class="flex justify-end space-x-2 pt-2">
+                <button onclick="closeAddMedModal()" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg font-bold text-sm" id="btnMedCancel">Cancel</button>
+                <button onclick="saveNewMedicine()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg font-bold text-sm" id="btnMedSave">Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // Multi-Language Dictionary (8 major languages)
+        const translations = {
+            en: {
+                title: "CareConnect (家安药历)",
+                profile: "Profile:",
+                add: "Add",
+                elderlyMode: "Patient / Elderly Mode",
+                familyMode: "Family / Caregiver Mode",
+                homeTab: "Home & Meds",
+                calendarTab: "Hospital Calendar",
+                idCardsTab: "ID & Health Cards",
+                hospitalBadge: "Hospital Visit",
+                hospitalCountdown: "Dr. Wong Appointment in 3 Days",
+                hospitalDetails: "📍 Central Hospital - Level 3, Room 302",
+                nextMed: "Next Medication",
+                takeMedBtn: "I HAVE TAKEN MY MEDICINE",
+                medTakenStatus: "Taken ✓",
+                medPendingStatus: "Pending ⏳",
+                photoLog: "Quick Photo Log (BP & Reports)",
+                photoLogSub: "Snap a photo of your blood pressure monitor or medical report to save instantly.",
+                snapBP: "Snap Blood Pressure",
+                snapReport: "Snap Medical Report",
+                familyDashboard: "Caregiver Live Status Dashboard",
+                liveSync: "● Real-time Synced",
+                medStatusTitle: "Medication Today",
+                latestBPTitle: "Latest Blood Pressure",
+                nextVisitTitle: "Next Hospital Visit",
+                medSchedule: "Medication Schedule & Types",
+                addMed: "Add Medicine",
+                monthlyCalendar: "Monthly Hospital & Health Calendar",
+                calendarSub: "Tap any date to check scheduled hospital visits and medication compliance.",
+                idCardTitle: "ID & Health Card Details",
+                editCard: "Edit Details",
+                idCardType: "Identity Card (ID)",
+                healthCardType: "Health / Medical Insurance Card",
+                idNumberLabel: "ID Number:",
+                healthNumberLabel: "Card / Member No:",
+                showQr: "Show QR",
+                normal: "Normal",
+                large: "Large",
+                extraLarge: "Extra Large",
+                modalIdTitle: "Edit ID & Health Card Details",
+                fullName: "Full Name",
+                idNo: "ID Card Number",
+                healthNo: "Health Card / Insurance No",
+                cancel: "Cancel",
+                save: "Save",
+                addMedTitle: "Add New Medicine",
+                medNameInput: "Medicine Name",
+                medTypeInput: "Medicine Type",
+                medDosageInput: "Dosage & Instructions"
+            },
+            "zh-CN": {
+                title: "家安药历 (CareConnect)",
+                profile: "当前档案:",
+                add: "添加",
+                elderlyMode: "长者/患者模式",
+                familyMode: "家属/照顾者模式",
+                homeTab: "首页与服药",
+                calendarTab: "就医日历",
+                idCardsTab: "身份证与医保卡",
+                hospitalBadge: "复诊提醒",
+                hospitalCountdown: "距离王医生复诊还有 3 天",
+                hospitalDetails: "📍 市中心医院 - 3楼 302诊室",
+                nextMed: "下一次服药提醒",
+                takeMedBtn: "我已经吃药了",
+                medTakenStatus: "已完成 ✓",
+                medPendingStatus: "待服用 ⏳",
+                photoLog: "随手拍记录 (血压与化验单)",
+                photoLogSub: "直接拍一张血压计屏幕或化验单照片，秒存记录。",
+                snapBP: "拍摄血压计",
+                snapReport: "拍摄化验单",
+                familyDashboard: "家属实时状态监控看板",
+                liveSync: "● 实时同步中",
+                medStatusTitle: "今日服药状态",
+                latestBPTitle: "最新血压记录",
+                nextVisitTitle: "下一次复诊",
+                medSchedule: "用药计划与剂型管理",
+                addMed: "添加药物",
+                monthlyCalendar: "每月就医与健康日历",
+                calendarSub: "点击任意日期查看当天医院预约与服药打卡记录。",
+                idCardTitle: "身份证与医保卡详情",
+                editCard: "修改资料",
+                idCardType: "身份证明 (ID Card)",
+                healthCardType: "医保卡 / 医疗健康卡",
+                idNumberLabel: "证件号码:",
+                healthNumberLabel: "卡号/会员号:",
+                showQr: "出示二维码",
+                normal: "正常",
+                large: "大",
+                extraLarge: "特大",
+                modalIdTitle: "修改身份证与医保卡详情",
+                fullName: "真实姓名",
+                idNo: "身份证件号",
+                healthNo: "医保卡/保险号",
+                cancel: "取消",
+                save: "保存",
+                addMedTitle: "添加新药物",
+                medNameInput: "药物名称",
+                medTypeInput: "药物剂型",
+                medDosageInput: "剂量与服用说明"
+            },
+            "zh-TW": {
+                title: "家安藥曆 (CareConnect)",
+                profile: "當前檔案:",
+                add: "新增",
+                elderlyMode: "長者/患者模式",
+                familyMode: "家屬/照顧者模式",
+                homeTab: "首頁與服藥",
+                calendarTab: "就醫日曆",
+                idCardsTab: "身份證與健保卡",
+                hospitalBadge: "複診提醒",
+                hospitalCountdown: "距離王醫生複診還有 3 天",
+                hospitalDetails: "📍 市中心醫院 - 3樓 302診室",
+                nextMed: "下一次服藥提醒",
+                takeMedBtn: "我已經吃藥了",
+                medTakenStatus: "已完成 ✓",
+                medPendingStatus: "待服用 ⏳",
+                photoLog: "隨手拍記錄 (血壓與化驗單)",
+                photoLogSub: "直接拍一張血壓計螢幕或化驗單照片，秒存記錄。",
+                snapBP: "拍攝血壓計",
+                snapReport: "拍攝化驗單",
+                familyDashboard: "家屬即時狀態監控看板",
+                liveSync: "● 即時同步中",
+                medStatusTitle: "今日服藥狀態",
+                latestBPTitle: "最新血壓記錄",
+                nextVisitTitle: "下一次複診",
+                medSchedule: "用藥計畫與劑型管理",
+                addMed: "新增藥物",
+                monthlyCalendar: "每月就醫與健康日曆",
+                calendarSub: "點擊任意日期檢視當天醫院預約與服藥打卡記錄。",
+                idCardTitle: "身份證與健保卡詳情",
+                editCard: "修改資料",
+                idCardType: "身分證明 (ID Card)",
+                healthCardType: "健保卡 / 醫療健康卡",
+                idNumberLabel: "證件號碼:",
+                healthNumberLabel: "卡號/會員號:",
+                showQr: "出示二維碼",
+                normal: "正常",
+                large: "大",
+                extraLarge: "特大",
+                modalIdTitle: "修改身份證與健保卡詳情",
+                fullName: "真實姓名",
+                idNo: "身分證件號",
+                healthNo: "健保卡/保險號",
+                cancel: "取消",
+                save: "儲存",
+                addMedTitle: "新增新藥物",
+                medNameInput: "藥物名稱",
+                medTypeInput: "藥物劑型",
+                medDosageInput: "劑量與服用說明"
+            },
+            es: {
+                title: "CareConnect (Salud)",
+                profile: "Perfil:",
+                add: "Añadir",
+                elderlyMode: "Modo Paciente / Mayor",
+                familyMode: "Modo Cuidador / Familia",
+                homeTab: "Inicio y Medicinas",
+                calendarTab: "Calendario",
+                idCardsTab: "Tarjetas de Identidad",
+                hospitalBadge: "Visita Médica",
+                hospitalCountdown: "Cita con Dr. Wong en 3 días",
+                hospitalDetails: "📍 Hospital Central - Nivel 3, Sala 302",
+                nextMed: "Siguiente Medicamento",
+                takeMedBtn: "YA HE TOMADO MI MEDICINA",
+                medTakenStatus: "Tomado ✓",
+                medPendingStatus: "Pendiente ⏳",
+                photoLog: "Registro Rápido (Presión y Reportes)",
+                photoLogSub: "Toma una foto de tu medidor de presión o reporte médico para guardar al instante.",
+                snapBP: "Foto Presión Arterial",
+                snapReport: "Foto Reporte Médico",
+                familyDashboard: "Panel de Estado del Cuidador",
+                liveSync: "● Sincronizado en vivo",
+                medStatusTitle: "Medicina de Hoy",
+                latestBPTitle: "Última Presión Arterial",
+                nextVisitTitle: "Próxima Cita",
+                medSchedule: "Horarios y Tipos de Medicinas",
+                addMed: "Añadir Medicina",
+                monthlyCalendar: "Calendario Mensual",
+                calendarSub: "Toca cualquier fecha para verificar citas y cumplimiento de medicamentos.",
+                idCardTitle: "Detalles de Identificación y Salud",
+                editCard: "Editar",
+                idCardType: "Cédula de Identidad (ID)",
+                healthCardType: "Tarjeta de Seguro Médico",
+                idNumberLabel: "Número de ID:",
+                healthNumberLabel: "Nº de Tarjeta:",
+                showQr: "Ver QR",
+                normal: "Normal",
+                large: "Grande",
+                extraLarge: "Muy Grande",
+                modalIdTitle: "Editar Identificación y Salud",
+                fullName: "Nombre Completo",
+                idNo: "Número de ID",
+                healthNo: "Nº de Seguro Médico",
+                cancel: "Cancelar",
+                save: "Guardar",
+                addMedTitle: "Añadir Nueva Medicina",
+                medNameInput: "Nombre de Medicina",
+                medTypeInput: "Tipo de Medicina",
+                medDosageInput: "Dosis e Instrucciones"
+            },
+            ja: {
+                title: "CareConnect (健康管理)",
+                profile: "プロフィール:",
+                add: "追加",
+                elderlyMode: "高齢者モード",
+                familyMode: "家族・介護者モード",
+                homeTab: "ホーム & お薬",
+                calendarTab: "病院カレンダー",
+                idCardsTab: "身分証・健康保険証",
+                hospitalBadge: "通院予定",
+                hospitalCountdown: "王医師の診察まであと3日",
+                hospitalDetails: "📍 中央病院 - 3階 302号室",
+                nextMed: "次回のお薬",
+                takeMedBtn: "お薬を飲みました",
+                medTakenStatus: "服用済み ✓",
+                medPendingStatus: "未服用 ⏳",
+                photoLog: "写真記録 (血圧・検査結果)",
+                photoLogSub: "血圧計や検査結果の写真を撮影してすぐに保存できます。",
+                snapBP: "血圧計を撮影",
+                snapReport: "検査結果を撮影",
+                familyDashboard: "ご家族見守りダッシュボード",
+                liveSync: "● リアルタイム同期中",
+                medStatusTitle: "本日の服薬状況",
+                latestBPTitle: "最新の血圧",
+                nextVisitTitle: "次回の通院",
+                medSchedule: "お薬スケジュールと剤型",
+                addMed: "お薬を追加",
+                monthlyCalendar: "月間通院・健康カレンダー",
+                calendarSub: "日付をタップして病院の予約や服薬状況を確認します。",
+                idCardTitle: "身分証・健康保険証の詳細",
+                editCard: "編集",
+                idCardType: "身分証明書 (ID)",
+                healthCardType: "健康保険証・医療カード",
+                idNumberLabel: "番号:",
+                healthNumberLabel: "カード番号:",
+                showQr: "QR表示",
+                normal: "標準",
+                large: "大",
+                extraLarge: "特大",
+                modalIdTitle: "身分証の編集",
+                fullName: "氏名",
+                idNo: "身分証番号",
+                healthNo: "保険証番号",
+                cancel: "キャンセル",
+                save: "保存",
+                addMedTitle: "新しいお薬を追加",
+                medNameInput: "お薬名",
+                medTypeInput: "お薬の種類",
+                medDosageInput: "用量・服用の指示"
+            },
+            ko: {
+                title: "CareConnect (건강 관리)",
+                profile: "프로필:",
+                add: "추가",
+                elderlyMode: "환자 / 어르신 모드",
+                familyMode: "보호자 / 가족 모드",
+                homeTab: "홈 및 복약",
+                calendarTab: "병원 캘린더",
+                idCardsTab: "신분증 및 건강보험증",
+                hospitalBadge: "병원 방문",
+                hospitalCountdown: "왕 의사 진료 3일 전",
+                hospitalDetails: "📍 중앙병원 - 3층 302호",
+                nextMed: "다음 복약",
+                takeMedBtn: "약을 복용했습니다",
+                medTakenStatus: "복용 완료 ✓",
+                medPendingStatus: "대기 중 ⏳",
+                photoLog: "사진 기록 (혈압 및 검사지)",
+                photoLogSub: "혈압 측정기나 검사 결과지를 촬영하여 즉시 저장하세요.",
+                snapBP: "혈압계 촬영",
+                snapReport: "검사지 촬영",
+                familyDashboard: "보호자 실시간 상태 대시보드",
+                liveSync: "● 실시간 동기화됨",
+                medStatusTitle: "오늘 복약 상태",
+                latestBPTitle: "최근 혈압",
+                nextVisitTitle: "다음 병원 방문",
+                medSchedule: "복약 일정 및 제형",
+                addMed: "약 추가",
+                monthlyCalendar: "월간 병원 및 건강 캘린더",
+                calendarSub: "날짜를 터치하여 병원 예약 및 복약 기록을 확인하세요.",
+                idCardTitle: "신분증 및 건강보험증 상세",
+                editCard: "정보 수정",
+                idCardType: "신분증 (ID Card)",
+                healthCardType: "건강보험증 / 의료카드",
+                idNumberLabel: "신분증 번호:",
+                healthNumberLabel: "카드 / 회원번호:",
+                showQr: "QR 표시",
+                normal: "보통",
+                large: "크게",
+                extraLarge: "아주 크게",
+                modalIdTitle: "신분증 및 보험증 편집",
+                fullName: "성함",
+                idNo: "신분증 번호",
+                healthNo: "보험증 번호",
+                cancel: "취소",
+                save: "저장",
+                addMedTitle: "새 약물 추가",
+                medNameInput: "약물 이름",
+                medTypeInput: "약물 유형",
+                medDosageInput: "복용량 및 지침"
+            },
+            vi: {
+                title: "CareConnect (Sức khỏe)",
+                profile: "Hồ sơ:",
+                add: "Thêm",
+                elderlyMode: "Chế độ Người cao tuổi",
+                familyMode: "Chế độ Người chăm sóc",
+                homeTab: "Trang chủ & Thuốc",
+                calendarTab: "Lịch khám bệnh",
+                idCardsTab: "Thẻ CCCD & Bảo hiểm",
+                hospitalBadge: "Lịch hẹn khám",
+                hospitalCountdown: "Khám bác sĩ Wong sau 3 ngày",
+                hospitalDetails: "📍 Bệnh viện Trung ương - Tầng 3, Phòng 302",
+                nextMed: "Thuốc tiếp theo",
+                takeMedBtn: "ĐÃ UỐNG THUỐC",
+                medTakenStatus: "Đã uống ✓",
+                medPendingStatus: "Chờ uống ⏳",
+                photoLog: "Chụp nhanh (Huyết áp & Xét nghiệm)",
+                photoLogSub: "Chụp ảnh máy đo huyết áp hoặc kết quả xét nghiệm để lưu lại ngay.",
+                snapBP: "Chụp Huyết áp",
+                snapReport: "Chụp Xét nghiệm",
+                familyDashboard: "Bảng theo dõi trực tiếp của gia đình",
+                liveSync: "● Đồng bộ thời gian thực",
+                medStatusTitle: "Trạng thái thuốc hôm nay",
+                latestBPTitle: "Huyết áp mới nhất",
+                nextVisitTitle: "Lịch hẹn khám tiếp theo",
+                medSchedule: "Lịch uống thuốc & Loại thuốc",
+                addMed: "Thêm thuốc",
+                monthlyCalendar: "Lịch khám bệnh hàng tháng",
+                calendarSub: "Chạm vào bất kỳ ngày nào để xem lịch hẹn và trạng thái uống thuốc.",
+                idCardTitle: "Chi tiết CCCD & Thẻ Y Tế",
+                editCard: "Chỉnh sửa",
+                idCardType: "Thẻ căn cước (ID)",
+                healthCardType: "Thẻ Bảo hiểm y tế",
+                idNumberLabel: "Số CCCD:",
+                healthNumberLabel: "Số thẻ BHYT:",
+                showQr: "Hiện mã QR",
+                normal: "Bình thường",
+                large: "Lớn",
+                extraLarge: "Rất lớn",
+                modalIdTitle: "Chỉnh sửa Thông tin Thẻ",
+                fullName: "Họ và tên",
+                idNo: "Số CCCD",
+                healthNo: "Số BHYT",
+                cancel: "Hủy",
+                save: "Lưu",
+                addMedTitle: "Thêm Thuốc Mới",
+                medNameInput: "Tên thuốc",
+                medTypeInput: "Loại thuốc",
+                medDosageInput: "Liều lượng & Hướng dẫn"
+            },
+            tl: {
+                title: "CareConnect (Kalusugan)",
+                profile: "Propayl:",
+                add: "Magdagdag",
+                elderlyMode: "Mode para sa Matanda",
+                familyMode: "Mode para sa Tagapag-alaga",
+                homeTab: "Tahanan at Gamot",
+                calendarTab: "Kalinaryo ng Ospital",
+                idCardsTab: "ID at Health Card",
+                hospitalBadge: "Bisita sa Ospital",
+                hospitalCountdown: "Check-up kay Dr. Wong sa 3 Araw",
+                hospitalDetails: "📍 Central Hospital - Level 3, Room 302",
+                nextMed: "Susunod na Gamot",
+                takeMedBtn: "ININOM KO NA ANG AKING GAMOT",
+                medTakenStatus: "Ininom na ✓",
+                medPendingStatus: "Naghihintay ⏳",
+                photoLog: "Mabilis na Litrato (Presyon at Report)",
+                photoLogSub: "Kunan ng litrato ang blood pressure monitor o medical report para i-save.",
+                snapBP: "Kunan ng Litrato ang BP",
+                snapReport: "Kunan ng Litrato ang Report",
+                familyDashboard: "Dashboard ng Tagapag-alaga",
+                liveSync: "● Live na Naka-sync",
+                medStatusTitle: "Gamot Ngayon",
+                latestBPTitle: "Pinakahuling Blood Pressure",
+                nextVisitTitle: "Susunod na Bisita sa Ospital",
+                medSchedule: "Iskedyul ng Gamot",
+                addMed: "Magdagdag ng Gamot",
+                monthlyCalendar: "Buwanang Kalendaryo ng Ospital",
+                calendarSub: "Pindutin ang anumang petsa upang makita ang mga appointment.",
+                idCardTitle: "Mga Detalye ng ID at Health Card",
+                editCard: "I-edit",
+                idCardType: "Identity Card (ID)",
+                healthCardType: "Health Insurance Card",
+                idNumberLabel: "Numero ng ID:",
+                healthNumberLabel: "Numero ng Card:",
+                showQr: "Ipakita ang QR",
+                normal: "Normal",
+                large: "Malaki",
+                extraLarge: "Napakalaki",
+                modalIdTitle: "I-edit ang ID at Health Card",
+                fullName: "Buong Pangalan",
+                idNo: "Numero ng ID",
+                healthNo: "Numero ng Health Card",
+                cancel: "Kanselahin",
+                save: "I-save",
+                addMedTitle: "Magdagdag ng Bagong Gamot",
+                medNameInput: "Pangalan ng Gamot",
+                medTypeInput: "Uri ng Gamot",
+                medDosageInput: "Dosis at Tagubilin"
+            }
+        };
+
+        // Application State Data per Profile
+        const appData = {
+            self: {
+                name: "Myself (自己)",
+                idNo: "B987654(3)",
+                healthNo: "HC-SELF-001",
+                medTaken: false,
+                medicines: [
+                    { name: "Vitamin C", type: "Pill / Tablet", dosage: "1 Tablet after breakfast" }
+                ],
+                photoLogs: [
+                    { type: "Blood Pressure", text: "120 / 80 mmHg", time: "Today, 08:30 AM" }
+                ]
+            },
+            dad: {
+                name: "Dad / 爸爸",
+                idNo: "A123456(7)",
+                healthNo: "HC-DAD-9988",
+                medTaken: false,
+                medicines: [
+                    { name: "Amlodipine (Blood Pressure)", type: "Pill / Tablet", dosage: "1 Tablet with water after breakfast" },
+                    { name: "Metformin (Diabetes)", type: "Pill / Tablet", dosage: "1 Tablet after lunch" },
+                    { name: "Insulin Injection", type: "Injection", dosage: "5 units before dinner" }
+                ],
+                photoLogs: [
+                    { type: "Blood Pressure", text: "125 / 82 mmHg (Normal)", time: "Today, 08:10 AM" }
+                ]
+            },
+            mom: {
+                name: "Mom / 媽媽",
+                idNo: "A765432(1)",
+                healthNo: "HC-MOM-5544",
+                medTaken: true,
+                medicines: [
+                    { name: "Calcium Supplement", type: "Pill / Tablet", dosage: "1 Tablet daily" },
+                    { name: "Eye Drops", type: "Drops", dosage: "1 drop both eyes 3x daily" }
+                ],
+                photoLogs: [
+                    { type: "Medical Report", text: "Blood Sugar Test: 5.6 mmol/L", time: "Yesterday" }
+                ]
+            }
+        };
+
+        let currentProfileKey = "dad";
+        let currentLang = "zh-CN";
+        let currentMode = "elderly";
+
+        // Initialize App on Load
+        window.onload = function() {
+            renderApp();
+            renderCalendarDays();
+        };
+
+        // Switch Profiles (Self, Dad, Mom)
+        function switchProfile(profileKey) {
+            currentProfileKey = profileKey;
+            renderApp();
+        }
+
+        // Switch Modes (Elderly vs Family)
+        function switchMode(mode) {
+            currentMode = mode;
+            const viewElderly = document.getElementById("viewElderly");
+            const viewFamily = document.getElementById("viewFamily");
+            const btnElderly = document.getElementById("btnModeElderly");
+            const btnFamily = document.getElementById("btnModeFamily");
+
+            if (mode === "elderly") {
+                viewElderly.classList.remove("hidden");
+                viewFamily.classList.add("hidden");
+                btnElderly.className = "flex-1 md:flex-initial px-4 py-2 rounded-lg font-bold transition text-sm bg-white text-indigo-600 shadow";
+                btnFamily.className = "flex-1 md:flex-initial px-4 py-2 rounded-lg font-bold transition text-sm text-slate-600";
+            } else {
+                viewElderly.classList.add("hidden");
+                viewFamily.classList.remove("hidden");
+                btnFamily.className = "flex-1 md:flex-initial px-4 py-2 rounded-lg font-bold transition text-sm bg-white text-indigo-600 shadow";
+                btnElderly.className = "flex-1 md:flex-initial px-4 py-2 rounded-lg font-bold transition text-sm text-slate-600";
+            }
+        }
+
+        // Switch Tabs (Home, Calendar, ID Cards)
+        function switchTab(tabName) {
+            const secHome = document.getElementById("sectionHome");
+            const secCalendar = document.getElementById("sectionCalendar");
+            const secIdCards = document.getElementById("sectionIdCards");
+
+            const tabHome = document.getElementById("tabHome");
+            const tabCalendar = document.getElementById("tabCalendar");
+            const tabIdCards = document.getElementById("tabIdCards");
+
+            secHome.classList.add("hidden");
+            secCalendar.classList.add("hidden");
+            secIdCards.classList.add("hidden");
+
+            tabHome.className = "pb-2 font-bold text-slate-500 hover:text-indigo-600 flex items-center space-x-2";
+            tabCalendar.className = "pb-2 font-bold text-slate-500 hover:text-indigo-600 flex items-center space-x-2";
+            tabIdCards.className = "pb-2 font-bold text-slate-500 hover:text-indigo-600 flex items-center space-x-2";
+
+            if (tabName === "home") {
+                secHome.classList.remove("hidden");
+                tabHome.className = "pb-2 font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-2";
+            } else if (tabName === "calendar") {
+                secCalendar.classList.remove("hidden");
+                tabCalendar.className = "pb-2 font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-2";
+            } else if (tabName === "idcards") {
+                secIdCards.classList.remove("hidden");
+                tabIdCards.className = "pb-2 font-bold border-b-2 border-indigo-600 text-indigo-600 flex items-center space-x-2";
+            }
+        }
+
+        // Change Language
+        function changeLanguage(lang) {
+            currentLang = lang;
+            renderApp();
+        }
+
+        // Change Font Size
+        function changeFontSize(size) {
+            const body = document.getElementById("appBody");
+            body.classList.remove("font-normal-size", "font-large-size", "font-extralarge-size");
+            if (size === "normal") body.classList.add("font-normal-size");
+            else if (size === "large") body.classList.add("font-large-size");
+            else if (size === "extralarge") body.classList.add("font-extralarge-size");
+        }
+
+        // Render UI Text and Data
+        function renderApp() {
+            const t = translations[currentLang] || translations["en"];
+            const profile = appData[currentProfileKey];
+
+            // Header & Labels
+            document.getElementById("uiAppTitle").innerText = t.title;
+            document.getElementById("lblProfile").innerText = t.profile;
+            document.getElementById("btnAddProfileText").innerText = t.add;
+            document.getElementById("lblModeElderly").innerText = t.elderlyMode;
+            document.getElementById("lblModeFamily").innerText = t.familyMode;
+            document.getElementById("lblTabHome").innerText = t.homeTab;
+            document.getElementById("lblTabCalendar").innerText = t.calendarTab;
+            document.getElementById("lblTabIdCards").innerText = t.idCardsTab;
+
+            // Elderly View Labels
+            document.getElementById("badgeHospital").innerText = t.hospitalBadge;
+            document.getElementById("txtHospitalCountdown").innerText = t.hospitalCountdown;
+            document.getElementById("txtHospitalDetails").innerText = t.hospitalDetails;
+            document.getElementById("lblNextMed").innerText = t.nextMed;
+            document.getElementById("lblPhotoLog").innerText = t.photoLog;
+            document.getElementById("lblPhotoLogSub").innerText = t.photoLogSub;
+            document.getElementById("btnSnapBP").innerText = t.snapBP;
+            document.getElementById("btnSnapReport").innerText = t.snapReport;
+
+            // Family View Labels
+            document.getElementById("lblFamilyDashboard").innerText = t.familyDashboard;
+            document.getElementById("lblLiveSync").innerText = t.liveSync;
+            document.getElementById("lblMedStatusTitle").innerText = t.medStatusTitle;
+            document.getElementById("lblLatestBPTitle").innerText = t.latestBPTitle;
+            document.getElementById("lblNextVisitTitle").innerText = t.nextVisitTitle;
+            document.getElementById("lblMedicineSchedule").innerText = t.medSchedule;
+            document.getElementById("btnAddMed").innerText = t.addMed;
+
+            // Calendar & ID Cards Labels
+            document.getElementById("lblMonthlyCalendarTitle").innerText = t.monthlyCalendar;
+            document.getElementById("lblCalendarSub").innerText = t.calendarSub;
+            document.getElementById("lblIdCardTitle").innerText = t.idCardTitle;
+            document.getElementById("btnEditCard").innerText = t.editCard;
+            document.getElementById("lblIdCardType").innerText = t.idCardType;
+            document.getElementById("lblHealthCardType").innerText = t.healthCardType;
+            document.getElementById("lblIdNumberLabel").innerText = t.idNumberLabel;
+            document.getElementById("lblHealthNumberLabel").innerText = t.healthNumberLabel;
+            document.getElementById("btnShowQr").innerText = t.showQr;
+
+            // Font options
+            document.getElementById("optFontNormal").innerText = t.normal;
+            document.getElementById("optFontLarge").innerText = t.large;
+            document.getElementById("optFontExtra").innerText = t.extraLarge;
+
+            // ID & Health Card Data
+            document.getElementById("displayIdName").innerText = profile.name;
+            document.getElementById("displayIdNumber").innerText = profile.idNo;
+            document.getElementById("displayHealthName").innerText = profile.name + " Health Card";
+            document.getElementById("displayHealthNumber").innerText = profile.healthNo;
+
+            // Medication Status Render
+            const btnTakeMed = document.getElementById("btnTakeMed");
+            const btnTextTakeMed = document.getElementById("btnTextTakeMed");
+            const medStatusBadge = document.getElementById("medStatusBadge");
+            const familyMedStatusText = document.getElementById("familyMedStatusText");
+
+            if (profile.medTaken) {
+                btnTakeMed.className = "w-full bg-slate-300 text-slate-600 font-bold text-xl py-5 rounded-2xl shadow flex items-center justify-center space-x-3 cursor-not-allowed";
+                btnTextTakeMed.innerText = t.medTakenStatus;
+                medStatusBadge.className = "bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold";
+                medStatusBadge.innerText = t.medTakenStatus;
+                familyMedStatusText.className = "text-lg font-bold text-emerald-600 mt-1";
+                familyMedStatusText.innerText = "✓ " + t.medTakenStatus;
+            } else {
+                btnTakeMed.className = "w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xl py-5 rounded-2xl shadow-lg transition transform active:scale-95 flex items-center justify-center space-x-3";
+                btnTextTakeMed.innerText = t.takeMedBtn;
+                medStatusBadge.className = "bg-amber-100 text-amber-800 text-xs px-3 py-1 rounded-full font-bold";
+                medStatusBadge.innerText = t.medPendingStatus;
+                familyMedStatusText.className = "text-lg font-bold text-amber-600 mt-1";
+                familyMedStatusText.innerText = "⏳ " + t.medPendingStatus;
+            }
+
+            // Render First Medicine on Home
+            if (profile.medicines.length > 0) {
+                document.getElementById("medName").innerText = profile.medicines[0].name;
+                document.getElementById("medDosage").innerText = profile.medicines[0].dosage;
+                document.getElementById("medTypeBadge").innerText = profile.medicines[0].type;
+            } else {
+                document.getElementById("medName").innerText = "No medicines scheduled";
+                document.getElementById("medDosage").innerText = "Click 'Add Medicine' to create one";
+                document.getElementById("medTypeBadge").innerText = "-";
+            }
+
+            // Render Medicine List in Family View
+            let medListHTML = "";
+            profile.medicines.forEach((m, idx) => {
+                medListHTML += `
+                    <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                        <div>
+                            <h4 class="font-bold text-slate-800">${m.name}</h4>
+                            <p class="text-xs text-slate-500 mt-0.5">${m.dosage}</p>
+                            <span class="inline-block mt-1 bg-indigo-100 text-indigo-800 text-xs px-2 py-0.5 rounded font-semibold">${m.type}</span>
+                        </div>
+                        <button onclick="removeMedicine(${idx})" class="text-rose-500 hover:text-rose-700 text-sm font-bold">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            document.getElementById("medicineListContainer").innerText = ""; // Clear
+            document.getElementById("medicineListContainer").innerHTML = medListHTML;
+
+            // Render Photo Logs
+            let photoHTML = "";
+            profile.photoLogs.forEach(p => {
+                photoHTML += `
+                    <div class="bg-indigo-50 border border-indigo-200 p-3 rounded-xl flex items-center justify-between text-sm">
+                        <div class="flex items-center space-x-3">
+                            <i class="fa-solid fa-image text-indigo-600 text-xl"></i>
+                            <div>
+                                <p class="font-bold text-slate-800">${p.type}: ${p.text}</p>
+                                <span class="text-xs text-slate-400">${p.time}</span>
+                            </div>
+                        </div>
+                        <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-1 rounded font-bold">Saved ✓</span>
+                    </div>
+                `;
+            });
+            document.getElementById("photoLogContainer").innerHTML = photoHTML;
+        }
+
+        // Confirm Taking Medicine
+        function confirmTakeMed() {
+            appData[currentProfileKey].medTaken = true;
+            renderApp();
+            alert("Medication confirmed successfully! Family member has been notified.");
+        }
+
+        // Simulate Taking Photo of BP or Report
+        function simulateTakePhoto(type) {
+            const val = type === "Blood Pressure" ? "122 / 80 mmHg (Good)" : "Blood Test: Cholesterol normal";
+            appData[currentProfileKey].photoLogs.unshift({
+                type: type,
+                text: val,
+                time: "Just now"
+            });
+            renderApp();
+            alert("Photo captured and stored securely in app records!");
+        }
+
+        // Render 31 Days Monthly Calendar
+        function renderCalendarDays() {
+            let html = "";
+            for (let i = 1; i <= 31; i++) {
+                let isHospitalVisit = (i === 16 || i === 30);
+                let isMedTakenDay = (i <= 13);
+                
+                let bgClass = "bg-white border-slate-200 hover:bg-slate-50";
+                let badge = "";
+
+                if (isHospitalVisit) {
+                    bgClass = "bg-rose-50 border-rose-300 text-rose-800 font-bold";
+                    badge = `<span class="block text-[10px] bg-rose-600 text-white rounded mt-1 px-1">Hospital</span>`;
+                } else if (isMedTakenDay) {
+                    badge = `<span class="block text-[10px] text-emerald-600 font-bold mt-1">✓ Meds</span>`;
+                }
+
+                html += `
+                    <div onclick="selectCalendarDay(${i}, ${isHospitalVisit})" class="border ${bgClass} p-2 rounded-xl cursor-pointer flex flex-col items-center justify-center min-h-[60px] transition">
+                        <span class="text-sm">${i}</span>
+                        ${badge}
+                    </div>
+                `;
+            }
+            document.getElementById("calendarDaysGrid").innerHTML = html;
+        }
+
+        function selectCalendarDay(day, isHospital) {
+            const box = document.getElementById("calendarSelectedBox");
+            const title = document.getElementById("selectedDateTitle");
+            const desc = document.getElementById("selectedDateDesc");
+            
+            box.classList.remove("hidden");
+            title.innerText = `October ${day}, 2026`;
+            if (isHospital) {
+                desc.innerText = "🏥 Hospital Visit scheduled at Central Hospital (Level 3, Room 302). Bring ID Card and previous blood pressure records.";
+            } else {
+                desc.innerText = "✓ Medication compliance verified for this day. Blood pressure within normal range.";
+            }
+        }
+
+        // Modal Controls for ID Cards
+        function openEditIdModal() {
+            const profile = appData[currentProfileKey];
+            document.getElementById("inputModalName").value = profile.name;
+            document.getElementById("inputModalIdNo").value = profile.idNo;
+            document.getElementById("inputModalHealthNo").value = profile.healthNo;
+            document.getElementById("modalEditId").classList.remove("hidden");
+        }
+
+        function closeEditIdModal() {
+            document.getElementById("modalEditId").classList.add("hidden");
+        }
+
+        function saveIdModal() {
+            const profile = appData[currentProfileKey];
+            profile.name = document.getElementById("inputModalName").value;
+            profile.idNo = document.getElementById("inputModalIdNo").value;
+            profile.healthNo = document.getElementById("inputModalHealthNo").value;
+            closeEditIdModal();
+            renderApp();
+            alert("ID and Health Card details updated successfully!");
+        }
+
+        // Modal Controls for Add Medicine
+        function openAddMedModal() {
+            document.getElementById("inputMedName").value = "";
+            document.getElementById("inputMedDosage").value = "";
+            document.getElementById("modalAddMed").classList.remove("hidden");
+        }
+
+        function closeAddMedModal() {
+            document.getElementById("modalAddMed").classList.add("hidden");
+        }
+
+        function saveNewMedicine() {
+            const name = document.getElementById("inputMedName").value;
+            const type = document.getElementById("inputMedType").value;
+            const dosage = document.getElementById("inputMedDosage").value;
+
+            if (!name) {
+                alert("Please enter medicine name");
+                return;
+            }
+
+            appData[currentProfileKey].medicines.push({ name, type, dosage });
+            closeAddMedModal();
+            renderApp();
+            alert("New medicine added successfully!");
+        }
+
+        function removeMedicine(index) {
+            appData[currentProfileKey].medicines.splice(index, 1);
+            renderApp();
+        }
+
+        // Add Profile Modal
+        function openAddProfileModal() {
+            const name = prompt("Enter new profile name (e.g., Uncle John / Grandma):");
+            if (name) {
+                const key = "custom_" + Date.now();
+                appData[key] = {
+                    name: name,
+                    idNo: "Z999999(9)",
+                    healthNo: "HC-CUSTOM-00",
+                    medTaken: false,
+                    medicines: [{ name: "Daily Vitamin", type: "Pill / Tablet", dosage: "1 Tablet daily" }],
+                    photoLogs: []
+                };
+
+                const select = document.getElementById("profileSelect");
+                const opt = document.createElement("option");
+                opt.value = key;
+                opt.innerText = "👤 " + name;
+                select.appendChild(opt);
+                select.value = key;
+                switchProfile(key);
+            }
+        }
+    </script>
+</body>
+</html>
